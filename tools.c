@@ -33,6 +33,8 @@
 #include <zlib.h>
 #include <time.h>
 #include <sys/time.h>
+#include <limits.h>
+#include <inttypes.h>
 
 //#include "interface.h"
 #include "tools.h"
@@ -91,11 +93,11 @@ int tgl_asprintf (char **res, const char *format, ...) {
   return r;
 }
 
-void tgl_free_debug (void *ptr, int size __attribute__ ((unused))) {
+void tgl_free_debug (void *ptr, size_t size __attribute__ ((unused))) {
   total_allocated_bytes -= size;
   ptr -= RES_PRE;
   if (size != (int)((*(int *)ptr) ^ 0xbedabeda)) {
-    logprintf ("size = %d, ptr = %d\n", size, (*(int *)ptr) ^ 0xbedabeda);
+    logprintf ("size = %zu, ptr = %"PRIdPTR"\n", size, (*(intptr_t *)ptr) ^ 0xbedabeda);
   }
   assert (*(int *)ptr == (int)((size) ^ 0xbedabeda));
   assert (*(int *)(ptr + RES_PRE + size) == (int)((size) ^ 0x7bed7bed));
@@ -113,11 +115,11 @@ void tgl_free_debug (void *ptr, int size __attribute__ ((unused))) {
   }
   blocks[--used_blocks] = 0;
   memset (ptr, 0, size + RES_PRE + RES_AFTER);
-  *(int *)ptr = size + 12;
+  *(intptr_t *)ptr = size + 12;
   free_blocks[free_blocks_cnt ++] = ptr;
 }
 
-void tgl_free_release (void *ptr, int size) {
+void tgl_free_release (void *ptr, size_t size) {
   free (ptr);
 }
 
@@ -140,10 +142,10 @@ void *tgl_alloc_debug (size_t size) {
   total_allocated_bytes += size;
   void *p = malloc (size + RES_PRE + RES_AFTER);
   ensure_ptr (p);
-  *(int *)p = size ^ 0xbedabeda;
-  *(int *)(p + 4) = size;
-  *(int *)(p + RES_PRE + size) = size ^ 0x7bed7bed;
-  *(int *)(p + RES_AFTER + 4 + size) = used_blocks;
+  *(intptr_t *)p = size ^ 0xbedabeda;
+  *(intptr_t *)(p + 4) = size;
+  *(intptr_t *)(p + RES_PRE + size) = size ^ 0x7bed7bed;
+  *(intptr_t *)(p + RES_AFTER + 4 + size) = used_blocks;
   blocks[used_blocks ++] = p;
 
   if (used_blocks - 1 == 24867) {
@@ -165,8 +167,13 @@ void *tgl_alloc0 (size_t size) {
   return p;
 }
 
+int tgl_strlen (const char *s) {
+    size_t l = strlen (s);
+    return l < INT_MAX ? (int)(l) : INT_MAX;
+}
+
 char *tgl_strdup (const char *s) {
-  int l = strlen (s);
+  int l = tstrlen (s);
   char *p = talloc (l + 1);
   memcpy (p, s, l + 1);
   return p;
