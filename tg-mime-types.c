@@ -2,8 +2,8 @@
 #include <assert.h>
 #define MAX_MIME_TYPES_NUM 10000
 
-extern char _binary_mime_types_start[];
-extern char _binary_mime_types_end[];
+#include "mime-types.c"
+
 
 char *tg_mime_by_filename (const char *filename) {
   int l = strlen (filename);
@@ -18,41 +18,43 @@ char *tg_mime_by_filename (const char *filename) {
   static char *mime_type_names[MAX_MIME_TYPES_NUM];
   static char *mime_type_extensions[MAX_MIME_TYPES_NUM];
   if (!mime_initialized) {
+    char *start = (char *)mime_types;
+    char *end = start + mime_types_len;
     mime_initialized = 1;
-    char *c = _binary_mime_types_start;
-    while (c < _binary_mime_types_end) {
+    char *c = start;
+    while (c < end) {
       if (*c == '#') {
-        while (c < _binary_mime_types_end && *c != '\n') {
+        while (c < end && *c != '\n') {
           c ++;
         }
-        if (c < _binary_mime_types_end) {
+        if (c < end) {
           c ++;
         }
       } else {
-        while (*c <= ' ' && *c != '\n' && c < _binary_mime_types_end) {
+        while (*c <= ' ' && *c != '\n' && c < end) {
           c ++;
         }
-        assert (*c > ' ' && *c != '\n' && c < _binary_mime_types_end);
+        assert (*c > ' ' && *c != '\n' && c < end);
         char *name = c;
-        while (*c > ' ' && *c != '\n' && c < _binary_mime_types_end) {
+        while (*c > ' ' && *c != '\n' && c < end) {
           c ++;
         }
-        assert (*c <= ' ' && *c != '\n' && c < _binary_mime_types_end);
+        assert (*c <= ' ' && *c != '\n' && c < end);
         *c = 0;
         c ++;
         while (1) {
-          while (*c <= ' ' && *c != '\n' && c < _binary_mime_types_end) {
+          while (*c <= ' ' && *c != '\n' && c < end) {
             c ++;
           }
-          if (*c == '\n' || c == _binary_mime_types_end) { 
+          if (*c == '\n' || c == end) { 
             if (*c == '\n') { c ++; }
             break; 
           }
           char *ext = c;
-          while (*c > ' ' && *c != '\n' && c < _binary_mime_types_end) {
+          while (*c > ' ' && *c != '\n' && c < end) {
             c ++;
           }
-          assert (c != _binary_mime_types_end);
+          assert (c != end);
           int br = (*c == '\n');
           *c = 0;
           c ++;
